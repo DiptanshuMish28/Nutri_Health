@@ -13,70 +13,102 @@ body {
 <div class="row" style="margin-bottom: 180px;">
     <div class="col-md-2"></div>
     <div class="col-md-8">
-        <center><h1 style="color:white;">Liver Disease Predictor</h1></center>
+        <h1 id="liver-disease-predictor" style="color:white;">Liver Disease Predictor</h1>
+
         <div class="card card-body" style="border: 1px solid black; background-color: #daa8f4">
-            <form class="form-horizontal" action="{{ url_for('predictPage') }}" method="POST">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="image_file">Upload Image of Medical Report:</label>
+                    <input type="file" class="form-control-file" id="image_file" name="image_file" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Extract Data from Image</button>
+            </form>
+
+            <form action="{{ url_for('predictPage') }}" method="post" class="mt-4">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Age" placeholder="Age (in years)">
+                            <label for="Age">Age (in years):</label>
+                            <input type="number" class="form-control" id="Age" name="Age" value="{{ data.Age if data and data.Age != 'Not found' else '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Gender" placeholder="Gender (0: Male; 1: Female)">
+                            <label for="Gender">Gender (0: Male; 1: Female):</label>
+                            <input type="number" class="form-control" id="Gender" name="Gender" value="{{ data.Gender if data else '' }}" required min="0" max="1">
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Total_Bilirubin" placeholder="Total Bilirubin (in mg/dL)">
+                            <label for="Total_Bilirubin">Total Bilirubin (in mg/dL):</label>
+                            <input type="number" step="0.01" class="form-control" id="Total_Bilirubin" name="Total_Bilirubin" value="{{ data.Total_Bilirubin if data and data.Total_Bilirubin != 'Not found' else '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Direct_Bilirubin" placeholder="Conjugated Bilirubin (in mg/dL)">
+                            <label for="Direct_Bilirubin">Direct Bilirubin (in mg/dL):</label>
+                            <input type="number" step="0.01" class="form-control" id="Direct_Bilirubin" name="Direct_Bilirubin" value="{{ data.Direct_Bilirubin if data and data.Direct_Bilirubin != 'Not found' else '' }}" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Alkaline_Phosphotase" placeholder="Alkaline Phosphatase (in IU/L)">
+                            <label for="Alkaline_Phosphotase">Alkaline Phosphatase (in IU/L):</label>
+                            <input type="number" class="form-control" id="Alkaline_Phosphotase" name="Alkaline_Phosphotase" value="{{ data.Alkaline_Phosphotase if data and data.Alkaline_Phosphotase != 'Not found' else '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Alamine_Aminotransferase" placeholder="Alamine Aminotransferase (in IU/L)">
+                            <label for="Alamine_Aminotransferase">Alamine Aminotransferase (in IU/L):</label>
+                            <input type="number" class="form-control" id="Alamine_Aminotransferase" name="Alamine_Aminotransferase" value="{{ data.Alamine_Aminotransferase if data and data.Alamine_Aminotransferase != 'Not found' else '' }}" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Aspartate_Aminotransferase" placeholder="Aspartate Aminotransferase (in IU/L)">
+                            <label for="Aspartate_Aminotransferase">Aspartate Aminotransferase (in IU/L):</label>
+                            <input type="number" class="form-control" id="Aspartate_Aminotransferase" name="Aspartate_Aminotransferase" value="{{ data.Aspartate_Aminotransferase if data and data.Aspartate_Aminotransferase != 'Not found' else '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Total_Protiens" placeholder="Total Proteins (in g/dL)">
+                            <label for="Total_Protiens">Total Proteins (in g/dL):</label>
+                            <input type="number" step="0.01" class="form-control" id="Total_Protiens" name="Total_Protiens" value="{{ data.Total_Protiens if data and data.Total_Protiens != 'Not found' else '' }}" required>
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Albumin" placeholder="Albumin (in g/dL)">
+                            <label for="Albumin">Albumin (in g/dL):</label>
+                            <input type="number" step="0.01" class="form-control" id="Albumin" name="Albumin" value="{{ data.Albumin if data and data.Albumin != 'Not found' else '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <input style="border: 1px solid black; background-color: #f0d0ff" class="form-control" type="text" name="Albumin_and_Globulin_Ratio" placeholder="Albumin and Globulin Ratio">
+                            <label for="Albumin_and_Globulin_Ratio">Albumin and Globulin Ratio:</label>
+                            <input type="number" step="0.01" class="form-control" id="Albumin_and_Globulin_Ratio" name="Albumin_and_Globulin_Ratio" value="{{ data.Albumin_and_Globulin_Ratio if data and data.Albumin_and_Globulin_Ratio != 'Not found' else '' }}" required>
                         </div>
                     </div>
                 </div>
-                <input style="background-color: #4e0374" type="submit" class="btn btn-info btn-block" value="Predict">
+
+                <button type="submit" class="btn btn-success">Submit for Prediction</button>
             </form>
         </div>
     </div>

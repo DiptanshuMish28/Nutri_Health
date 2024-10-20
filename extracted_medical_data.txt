@@ -1,0 +1,9 @@
+Age: Not found
+Total_Bilirubin: Not found
+Direct_Bilirubin: Not found
+Alkaline_Phosphotase: 86.5
+Alamine_Aminotransferase: Not found
+Aspartate_Aminotransferase: Not found
+Total_Protiens: Not found
+Albumin: Not found
+Albumin_and_Globulin_Ratio: Not found

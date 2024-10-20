@@ -1,11 +1,17 @@
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash
 import pickle
 import numpy as np
 from PIL import Image
 import tensorflow as tf
+from ocr import preprocess_image, extract_text_from_image, extract_medical_fields
 
 app = Flask(__name__)
+#app.secret_key = 'your_secret_key_here'  # Required for flash messages
+
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the uploads directory exists
+app.secret_key = 'your_secret_key_here'  # Required for flash messages
 
 def predict(values, dic):
     # diabetes
@@ -92,7 +98,42 @@ def kidneyPage():
 
 @app.route("/liver", methods=['GET', 'POST'])
 def liverPage():
-    return render_template('liver.html')
+    data = None
+    if request.method == 'POST':
+        if 'image_file' in request.files:
+            image_file = request.files['image_file']
+            if image_file:
+                # Save the uploaded image
+                image_path = os.path.join('uploads', image_file.filename)
+                image_file.save(image_path)
+
+                # Use OCR functions from ocr.py to extract data
+                preprocessed_image = preprocess_image(image_path)
+                if preprocessed_image is not None:
+                    extracted_text = extract_text_from_image(preprocessed_image)
+                    if extracted_text:
+                        data = extract_medical_fields(extracted_text)
+                        
+                        # Handle Gender field (not present in OCR output)
+                        data['Gender'] = ''
+                        
+                        # Check if any fields are "Not found"
+                        not_found_fields = [field for field, value in data.items() if value == "Not found"]
+                        if not_found_fields:
+                            flash(f"Some fields could not be extracted: {', '.join(not_found_fields)}. Please fill them manually.", "warning")
+                        else:
+                            flash("Data successfully extracted from the image. Please review and correct if necessary.", "success")
+                    else:
+                        flash("Could not extract text from the image. Please enter the data manually.", "error")
+                else:
+                    flash("Could not process the image. Please try again with a clearer image.", "error")
+                
+                # Clean up the uploaded file
+                os.remove(image_path)
+            else:
+                flash("No file uploaded. Please select an image file.", "error")
+
+    return render_template('liver.html', data=data)
 
 @app.route("/malaria", methods=['GET', 'POST'])
 def malariaPage():
