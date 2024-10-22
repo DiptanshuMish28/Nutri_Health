@@ -169,5 +169,5 @@ def liverPage():
 # Add other disease prediction routes (heart, kidney, etc.)
 # ...
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(debug=True)
