@@ -13,6 +13,22 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the uploads directory exists
 app.secret_key = 'your_secret_key_here'  # Required for flash messages
 
+def predictDiabetes(input_data):
+    # input_data = (5,166,72,19,175,25.8,0.587,51)
+    # filename = 'diabetes_model.sav'
+    # pickle.dump(classifier, open(filename, 'wb'))
+    loaded_model = pickle.load(open('./models/diabetes_model.sav', 'rb'))
+
+    # changing the input_data to numpy array
+    input_data_as_numpy_array = np.asarray(input_data)
+
+    # reshape the array as we are predicting for one instance
+    input_data_reshaped = input_data_as_numpy_array.reshape(1,-1)
+
+    prediction = loaded_model.predict(input_data_reshaped)
+    print(prediction)
+    return prediction
+
 def predict(values, dic):
     # diabetes
     if len(values) == 8:
@@ -46,11 +62,19 @@ def predict(values, dic):
             dic2['NewGlucose_Secret'] = 1
 
         dic.update(dic2)
-        values2 = list(map(float, list(dic.values())))
+
+        # values2 = list(map(float, list(dic.values())))
+        values2 = {'names': [], 'formats': []}
+        for key in dic:
+            values2["names"].append(key)
+            values2["formats"].append(dic[key])
 
         model = pickle.load(open('models/diabetes.pkl','rb'))
-        values = np.asarray(values2)
+        # values = np.asarray(values2)
+        values = values2
+
         return model.predict(values.reshape(1, -1))[0]
+
 
     # breast_cancer
     elif len(values) == 22:
@@ -145,19 +169,34 @@ def pneumoniaPage():
 
 @app.route("/predict", methods = ['POST', 'GET'])
 def predictPage():
+    print()
     try:
         if request.method == 'POST':
-            to_predict_dict = request.form.to_dict()
+            # to_predict_dict = request.form.to_dict()
+            # to_predict_dict = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
+            # print(to_predict_dict)
 
-            for key, value in to_predict_dict.items():
-                try:
-                    to_predict_dict[key] = int(value)
-                except ValueError:
-                    to_predict_dict[key] = float(value)
+            # for key, value in to_predict_dict.items():
+            #     try:
+            #         to_predict_dict[key] = int(value)
+            #     except :
+            #         to_predict_dict[key] = float(value)
+            # to_predict_list = list(map(float, list(to_predict_dict.values())))
+            # pred = predict(to_predict_list, to_predict_dict)
 
-            to_predict_list = list(map(float, list(to_predict_dict.values())))
-            pred = predict(to_predict_list, to_predict_dict)
-    except:
+            data = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
+
+            # Convert values to appropriate types (int/float)
+            values_tuple = tuple(
+                float(value) if '.' in value else int(value) 
+                for value in data.values()
+            )
+            print(values_tuple)
+
+
+            pred = predictDiabetes(values_tuple)
+    except Exception as e:
+        print(e)
         message = "Please enter valid data"
         return render_template("home.html", message=message)
 
