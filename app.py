@@ -7,7 +7,7 @@ import tensorflow as tf
 from ocr import preprocess_image, extract_text_from_image, extract_medical_fields
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(_name_)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the uploads directory exists
 app.secret_key = 'your_secret_key_here'  # Required for flash messages
