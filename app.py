@@ -172,7 +172,7 @@ def predictPage():
     print()
     try:
         if request.method == 'POST':
-            # to_predict_dict = request.form.to_dict()
+            data = request.form.to_dict()
             # to_predict_dict = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
             # print(to_predict_dict)
 
@@ -184,7 +184,7 @@ def predictPage():
             # to_predict_list = list(map(float, list(to_predict_dict.values())))
             # pred = predict(to_predict_list, to_predict_dict)
 
-            data = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
+            # data = {'Pregnancies': '6', 'Glucose': '148', 'BloodPressure': '72', 'SkinThickness': '35', 'Insulin': '0', 'BMI': '33.6', 'DiabetesPedigreeFunction': '0.627', 'Age': '50'}
 
             # Convert values to appropriate types (int/float)
             values_tuple = tuple(
