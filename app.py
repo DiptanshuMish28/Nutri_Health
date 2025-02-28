@@ -6,58 +6,19 @@ from PIL import Image
 import tensorflow as tf
 from ocr import preprocess_image, extract_text_from_image, extract_medical_fields
 
-# Initialize Flask app
 app = Flask(__name__)
+#app.secret_key = 'your_secret_key_here'  # Required for flash messages
+
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the uploads directory exists
 app.secret_key = 'your_secret_key_here'  # Required for flash messages
 
-# Load models
-diabetes_model = pickle.load(open('models/diabetes_model.sav', 'rb'))
-# Load other models here as needed
-
-# Function to calculate TDEE (Total Daily Energy Expenditure)
-def calculate_tdee(activity_level, bodyweight, height, age, sex):
-    if sex == 'male':
-        BMR = 66 + (13.7 * bodyweight) + (5 * height) - (6.8 * age)
-    else:  # female
-        BMR = 655 + (9.6 * bodyweight) + (1.8 * height) - (4.7 * age)
-
-    # Activity factor: 1.2 = sedentary, 1.55 = moderately active, 1.9 = very active
-    if activity_level == 'low':
-        TDEE = BMR * 1.2
-    elif activity_level == 'medium':
-        TDEE = BMR * 1.55
-    else:  # high activity
-        TDEE = BMR * 1.9
-    return TDEE
-
-# Function to calculate daily nutrition based on the goal
-def recommend_diet(tdee, goal):
-    if goal == 'cutting':
-        energy = tdee - 300  # reduce by 300 calories for cutting
-    elif goal == 'bulking':
-        energy = tdee + 400  # increase by 400 calories for bulking
-    else:
-        energy = tdee  # maintain calories for maintenance
-
-    # Macronutrient distribution based on Taiwan Ministry guidelines
-    carbs = (energy * 0.5) / 4   # 50% of calories from carbs
-    protein = (energy * 0.25) / 4  # 25% from protein
-    fats = (energy * 0.25) / 9    # 25% from fats
-
-    return energy, carbs, protein, fats
-
-# Main prediction function for various diseases
 def predict(values, dic):
+    # diabetes
     if len(values) == 8:
-        # Diabetes prediction
-        dic2 = {
-            'NewBMI_Obesity 1': 0, 'NewBMI_Obesity 2': 0, 'NewBMI_Obesity 3': 0,
-            'NewBMI_Overweight': 0, 'NewBMI_Underweight': 0, 'NewInsulinScore_Normal': 0,
-            'NewGlucose_Low': 0, 'NewGlucose_Normal': 0, 'NewGlucose_Overweight': 0,
-            'NewGlucose_Secret': 0
-        }
+        dic2 = {'NewBMI_Obesity 1': 0, 'NewBMI_Obesity 2': 0, 'NewBMI_Obesity 3': 0, 'NewBMI_Overweight': 0,
+                'NewBMI_Underweight': 0, 'NewInsulinScore_Normal': 0, 'NewGlucose_Low': 0,
+                'NewGlucose_Normal': 0, 'NewGlucose_Overweight': 0, 'NewGlucose_Secret': 0}
 
         if dic['BMI'] <= 18.5:
             dic2['NewBMI_Underweight'] = 1
@@ -86,10 +47,34 @@ def predict(values, dic):
 
         dic.update(dic2)
         values2 = list(map(float, list(dic.values())))
-        return diabetes_model.predict(np.asarray(values2).reshape(1, -1))[0]
 
-    # Add other conditions (liver, heart, etc.) similarly as needed
-    # ...
+        model = pickle.load(open('models/diabetes.pkl','rb'))
+        values = np.asarray(values2)
+        return model.predict(values.reshape(1, -1))[0]
+
+    # breast_cancer
+    elif len(values) == 22:
+        model = pickle.load(open('models/breast_cancer.pkl','rb'))
+        values = np.asarray(values)
+        return model.predict(values.reshape(1, -1))[0]
+
+    # heart disease
+    elif len(values) == 13:
+        model = pickle.load(open('models/heart.pkl','rb'))
+        values = np.asarray(values)
+        return model.predict(values.reshape(1, -1))[0]
+
+    # kidney disease
+    elif len(values) == 24:
+        model = pickle.load(open('models/kidney.pkl','rb'))
+        values = np.asarray(values)
+        return model.predict(values.reshape(1, -1))[0]
+
+    # liver disease
+    elif len(values) == 10:
+        model = pickle.load(open('models/liver.pkl','rb'))
+        values = np.asarray(values)
+        return model.predict(values.reshape(1, -1))[0]
 
 @app.route("/")
 def home():
@@ -97,45 +82,20 @@ def home():
 
 @app.route("/diabetes", methods=['GET', 'POST'])
 def diabetesPage():
-    if request.method == 'POST':
-        # Get form data for diabetes prediction
-        pregnancies = int(request.form['Pregnancies'])
-        glucose = int(request.form['Glucose'])
-        bloodpressure = int(request.form['BloodPressure'])
-        skinthickness = int(request.form['SkinThickness'])
-        insulin = int(request.form['Insulin'])
-        bmi = float(request.form['BMI'])
-        dpf = float(request.form['DiabetesPedigreeFunction'])
-        age = int(request.form['Age'])
-
-        # Collect additional data for diet recommendation
-        weight = float(request.form['Weight'])  # in kg
-        height = float(request.form['Height'])  # in cm
-        activity_level = request.form['Activity']  # low, medium, high
-        goal = request.form['Goal']  # cutting, maintaining, bulking
-        sex = request.form['Sex']  # male, female
-
-        # Predict diabetes
-        input_data = np.array([[pregnancies, glucose, bloodpressure, skinthickness, insulin, bmi, dpf, age]])
-        prediction = diabetes_model.predict(input_data)[0]
-
-        if prediction == 0:
-            result = 'The person is not diabetic'
-        else:
-            result = 'The person is diabetic'
-
-        # Calculate TDEE and suggest diet
-        tdee = calculate_tdee(activity_level, weight, height, age, sex)
-        energy, carbs, protein, fats = recommend_diet(tdee, goal)
-
-        # Display the prediction and diet recommendation
-        return render_template('diabetes.html', prediction_text=result,
-                               tdee_text=f"TDEE: {tdee:.2f} kcal",
-                               diet_text=f"Recommended Diet: {energy:.2f} kcal/day (Carbs: {carbs:.2f}g, "
-                                         f"Protein: {protein:.2f}g, Fats: {fats:.2f}g)")
     return render_template('diabetes.html')
 
-# Other disease routes (liver, heart, etc.)
+@app.route("/cancer", methods=['GET', 'POST'])
+def cancerPage():
+    return render_template('breast_cancer.html')
+
+@app.route("/heart", methods=['GET', 'POST'])
+def heartPage():
+    return render_template('heart.html')
+
+@app.route("/kidney", methods=['GET', 'POST'])
+def kidneyPage():
+    return render_template('kidney.html')
+
 @app.route("/liver", methods=['GET', 'POST'])
 def liverPage():
     data = None
@@ -143,15 +103,21 @@ def liverPage():
         if 'image_file' in request.files:
             image_file = request.files['image_file']
             if image_file:
+                # Save the uploaded image
                 image_path = os.path.join('uploads', image_file.filename)
                 image_file.save(image_path)
 
+                # Use OCR functions from ocr.py to extract data
                 preprocessed_image = preprocess_image(image_path)
                 if preprocessed_image is not None:
                     extracted_text = extract_text_from_image(preprocessed_image)
                     if extracted_text:
                         data = extract_medical_fields(extracted_text)
+                        
+                        # Handle Gender field (not present in OCR output)
                         data['Gender'] = ''
+                        
+                        # Check if any fields are "Not found"
                         not_found_fields = [field for field, value in data.items() if value == "Not found"]
                         if not_found_fields:
                             flash(f"Some fields could not be extracted: {', '.join(not_found_fields)}. Please fill them manually.", "warning")
@@ -161,13 +127,79 @@ def liverPage():
                         flash("Could not extract text from the image. Please enter the data manually.", "error")
                 else:
                     flash("Could not process the image. Please try again with a clearer image.", "error")
+                
+                # Clean up the uploaded file
                 os.remove(image_path)
             else:
                 flash("No file uploaded. Please select an image file.", "error")
+
     return render_template('liver.html', data=data)
 
-# Add other disease prediction routes (heart, kidney, etc.)
-# ...
+@app.route("/malaria", methods=['GET', 'POST'])
+def malariaPage():
+    return render_template('malaria.html')
+
+@app.route("/pneumonia", methods=['GET', 'POST'])
+def pneumoniaPage():
+    return render_template('pneumonia.html')
+
+@app.route("/predict", methods = ['POST', 'GET'])
+def predictPage():
+    try:
+        if request.method == 'POST':
+            to_predict_dict = request.form.to_dict()
+
+            for key, value in to_predict_dict.items():
+                try:
+                    to_predict_dict[key] = int(value)
+                except ValueError:
+                    to_predict_dict[key] = float(value)
+
+            to_predict_list = list(map(float, list(to_predict_dict.values())))
+            pred = predict(to_predict_list, to_predict_dict)
+    except:
+        message = "Please enter valid data"
+        return render_template("home.html", message=message)
+
+    return render_template('predict.html', pred=pred)
+
+@app.route("/malariapredict", methods = ['POST', 'GET'])
+def malariapredictPage():
+    if request.method == 'POST':
+        try:
+            img = Image.open(request.files['image'])
+            img.save("uploads/image.jpg")
+            img_path = os.path.join(os.path.dirname(__file__), 'uploads/image.jpg')
+            os.path.isfile(img_path)
+            img = tf.keras.utils.load_img(img_path, target_size=(128, 128))
+            img = tf.keras.utils.img_to_array(img)
+            img = np.expand_dims(img, axis=0)
+
+            model = tf.keras.models.load_model("models/malaria.h5")
+            pred = np.argmax(model.predict(img))
+        except:
+            message = "Please upload an image"
+            return render_template('malaria.html', message=message)
+    return render_template('malaria_predict.html', pred=pred)
+
+@app.route("/pneumoniapredict", methods = ['POST', 'GET'])
+def pneumoniapredictPage():
+    if request.method == 'POST':
+        try:
+            img = Image.open(request.files['image']).convert('L')
+            img.save("uploads/image.jpg")
+            img_path = os.path.join(os.path.dirname(__file__), 'uploads/image.jpg')
+            os.path.isfile(img_path)
+            img = tf.keras.utils.load_img(img_path, target_size=(128, 128))
+            img = tf.keras.utils.img_to_array(img)
+            img = np.expand_dims(img, axis=0)
+
+            model = tf.keras.models.load_model("models/pneumonia.h5")
+            pred = np.argmax(model.predict(img))
+        except:
+            message = "Please upload an image"
+            return render_template('pneumonia.html', message=message)
+    return render_template('pneumonia_predict.html', pred=pred)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug = True)
